@@ -1,0 +1,55 @@
+[plot]
+node_color_key = "T1_us"                # 初期表示
+edge_color_key = "cx_error"
+edge_label_key = "cx_error"
+
+# ドロップダウンに出したい候補
+edge_color_keys = ["cx_error", "duration_ns"]
+node_color_keys = ["T1_us", "freq_GHz"]
+
+colorscale = "plasma_r"
+colorscale_range = [0.5, 1.0]
+
+node_colorscale = "plasma_r"
+node_colorscale_range = [0.5, 1.0]
+
+edge_colorscale = "plasma"
+edge_colorscale_range = [0.0, 0.5]
+
+# 以下、今まで通り
+node_cmin = 60.0
+node_cmax = 90.0
+edge_cmin = 0.005
+edge_cmax = 0.012
+
+show_colorbar_nodes = true
+show_colorbar_edges = true
+show_ct_markers = false
+
+figure_width = 900
+figure_height = 600
+
+# ★ ノード用：パラメータごとの上書き設定
+[plot.node_color_params.T1_us]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 60.0
+cmax = 90.0
+
+[plot.node_color_params.freq_GHz]
+colorscale       = "Viridis"
+colorscale_range = [0.0, 1.0]
+# cmin/cmax 省略時は自動 (データの min/max)
+
+
+# ★ エッジ用：パラメータごとの上書き設定
+[plot.edge_color_params.cx_error]
+colorscale       = "Plasma"
+colorscale_range = [0.5, 1.0]
+cmin = 0.005
+cmax = 0.012
+
+[plot.edge_color_params.duration_ns]
+colorscale       = "Viridis"
+colorscale_range = [0.0, 1.0]
+# cmin/cmax 省略 → データから自動

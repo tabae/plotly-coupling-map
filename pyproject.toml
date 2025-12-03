@@ -1,0 +1,11 @@
+[project]
+name = "plotly-network-graph"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "networkx>=3.6",
+    "numpy>=2.3.5",
+    "plotly>=6.5.0",
+]
