@@ -44,8 +44,8 @@ colorscale_range = [0.0, 1.0]
 
 # ★ エッジ用：パラメータごとの上書き設定
 [plot.edge_color_params.cx_error]
-colorscale       = "Plasma"
-colorscale_range = [0.5, 1.0]
+colorscale       = "plasma"
+colorscale_range = [0.0, 0.5]
 cmin = 0.005
 cmax = 0.012
 

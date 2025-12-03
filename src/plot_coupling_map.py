@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 import plotly.graph_objects as go
@@ -17,6 +18,14 @@ QubitId = int
 Coord = Tuple[float, float]
 NodeProps = Mapping[str, Any]
 EdgeProps = Mapping[Tuple[QubitId, QubitId], Mapping[str, Any]]
+
+
+@dataclass(frozen=True)
+class ColorStyle:
+    colorscale: str | Sequence[str] | Sequence[Tuple[float, str]]
+    colorscale_range: Tuple[float, float]
+    cmin: float | None = None
+    cmax: float | None = None
 
 
 def load_plot_config(path: str) -> Dict[str, Any]:
@@ -83,6 +92,365 @@ def _truncate_colorscale(
     # ← ここでは「元の」colorscale を使ってサンプリング
     cols = px.colors.sample_colorscale(colorscale, positions)
     return [(i / (n_samples - 1), c) for i, c in enumerate(cols)]
+
+
+def _ensure_range_tuple(
+    value: Sequence[float] | Tuple[float, float] | None,
+    default: Tuple[float, float],
+) -> Tuple[float, float]:
+    if value is None:
+        return default
+    return (float(value[0]), float(value[1]))
+
+
+def _resolve_effective_colorscale(
+    colorscale: str | Sequence[str] | Sequence[Tuple[float, str]],
+    range_limits: Tuple[float, float],
+):
+    """Apply range trimming only when the requested window is partial."""
+    low, high = range_limits
+    if low <= 0.0 and high >= 1.0:
+        return colorscale
+    return _truncate_colorscale(colorscale, low, high)
+
+
+def _extract_value_range(
+    values: Sequence[float | None],
+    cmin_override: float | None,
+    cmax_override: float | None,
+) -> Tuple[float | None, float | None]:
+    vmin, vmax = _min_max(values)
+    if cmin_override is not None:
+        vmin = cmin_override
+    if cmax_override is not None:
+        vmax = cmax_override
+    return vmin, vmax
+
+
+def _create_value_to_color_mapper(
+    colorscale: str | Sequence[str] | Sequence[Tuple[float, str]],
+    range_limits: Tuple[float, float],
+    vmin: float | None,
+    vmax: float | None,
+    fallback: str = "#888888",
+):
+    """Return mapper that clamps values and samples the requested colorscale."""
+    low, high = range_limits
+
+    def _mapper(value: float | None) -> str:
+        if value is None or vmin is None or vmax is None:
+            return fallback
+        if math.isclose(vmax, vmin):
+            ratio = 0.5
+        else:
+            ratio = (value - vmin) / (vmax - vmin)
+        ratio = max(0.0, min(1.0, ratio))
+        mapped = low + (high - low) * ratio
+        mapped = max(0.0, min(1.0, mapped))
+        return px.colors.sample_colorscale(colorscale, [mapped])[0]
+
+    return _mapper
+
+
+def _build_param_styles(
+    overrides: Mapping[str, Mapping[str, Any]] | None,
+    base_style: ColorStyle,
+) -> Dict[str, ColorStyle]:
+    result: Dict[str, ColorStyle] = {}
+    if not overrides:
+        return result
+    for key, raw in overrides.items():
+        colorscale = raw.get("colorscale", base_style.colorscale)
+        colorscale_range = _ensure_range_tuple(
+            raw.get("colorscale_range"), base_style.colorscale_range
+        )
+        cmin = raw.get("cmin", base_style.cmin)
+        cmax = raw.get("cmax", base_style.cmax)
+        result[key] = ColorStyle(colorscale, colorscale_range, cmin, cmax)
+    return result
+
+
+def _build_node_trace(
+    qubits: Sequence[QubitId],
+    node_positions: Mapping[QubitId, Coord],
+    node_props: Mapping[QubitId, NodeProps],
+    node_color_key: str | None,
+    node_size: float,
+    node_colorscale,
+    node_cmin: float | None,
+    node_cmax: float | None,
+    show_colorbar_nodes: bool,
+    node_label_font_size: int,
+    node_label_font_color: str,
+    node_label_font_family: str | None,
+):
+    x_nodes: List[float] = []
+    y_nodes: List[float] = []
+    node_hover: List[str] = []
+    node_color_values: List[float | None] = []
+
+    for q in qubits:
+        x, y = node_positions[q]
+        x_nodes.append(x)
+        y_nodes.append(y)
+        node_hover.append(_build_hover_text(f"q{q}", node_props.get(q, {})))
+
+        if node_color_key is not None:
+            node_color_values.append(node_props.get(q, {}).get(node_color_key, None))
+        else:
+            node_color_values.append(None)
+
+    node_vmin, node_vmax = _extract_value_range(
+        node_color_values, node_cmin, node_cmax
+    )
+
+    if node_color_key is not None and node_vmin is not None and node_vmax is not None:
+        node_marker = dict(
+            size=node_size,
+            color=node_color_values,
+            colorscale=node_colorscale,
+            cmin=node_vmin,
+            cmax=node_vmax,
+            showscale=show_colorbar_nodes,
+            colorbar=dict(
+                title=node_color_key,
+                x=1.05,
+                xanchor="center",
+                y=0.5,
+                len=1.0,
+            ),
+            opacity=1.0,
+        )
+    else:
+        node_marker = dict(
+            size=node_size,
+            color="#1f77b4",
+            opacity=1.0,
+        )
+
+    node_label_font: Dict[str, Any] = dict(
+        size=node_label_font_size,
+        color=node_label_font_color,
+    )
+    if node_label_font_family is not None:
+        node_label_font["family"] = node_label_font_family
+
+    node_trace = go.Scatter(
+        x=x_nodes,
+        y=y_nodes,
+        mode="markers+text",
+        text=[f"<b>{q}</b>" for q in qubits],
+        textposition="middle center",
+        textfont=node_label_font,
+        hoverinfo="text",
+        hovertext=node_hover,
+        marker=node_marker,
+        showlegend=False,
+        name="NODE_TRACE",
+    )
+
+    return node_trace
+
+
+def _build_edge_elements(
+    edges: Sequence[Tuple[QubitId, QubitId]],
+    node_positions: Mapping[QubitId, Coord],
+    edge_props: EdgeProps,
+    edge_color_key: str | None,
+    edge_label_key: str | None,
+    edge_colorscale,
+    edge_colorscale_range: Tuple[float, float],
+    edge_cmin: float | None,
+    edge_cmax: float | None,
+    edge_label_font_size: int,
+    edge_label_offset_frac: float,
+):
+    edge_traces: List[go.Scatter] = []
+    annotations: List[dict] = []
+
+    if edge_color_key is not None:
+        edge_color_values: List[float | None] = [
+            edge_props.get((c, t), {}).get(edge_color_key, None)
+            for (c, t) in edges
+        ]
+    else:
+        edge_color_values = []
+
+    edge_vmin, edge_vmax = _extract_value_range(
+        edge_color_values, edge_cmin, edge_cmax
+    )
+    edge_to_color = _create_value_to_color_mapper(
+        edge_colorscale, edge_colorscale_range, edge_vmin, edge_vmax
+    )
+
+    for (c, t) in edges:
+        x0, y0 = node_positions[c]
+        x1, y1 = node_positions[t]
+
+        props = edge_props.get((c, t), {})
+        hover_text = _build_hover_text(f"{c} → {t}", props)
+        color_value = props.get(edge_color_key, None) if edge_color_key else None
+        line_color = edge_to_color(color_value)
+
+        edge_traces.append(
+            go.Scatter(
+                x=[x0, x1],
+                y=[y0, y1],
+                mode="lines",
+                line=dict(width=6, color=line_color),
+                hoverinfo="text",
+                hovertext=[hover_text, hover_text],
+                showlegend=False,
+            )
+        )
+
+        if edge_label_key is not None and edge_label_key in props:
+            label = props[edge_label_key]
+
+            dx = x1 - x0
+            dy = y1 - y0
+            length = math.hypot(dx, dy) or 1.0
+            ux, uy = dx / length, dy / length
+            nx, ny = -uy, ux
+
+            if abs(dx) >= abs(dy):
+                if ny < 0:
+                    nx, ny = -nx, -ny
+            else:
+                if nx < 0:
+                    nx, ny = -nx, -ny
+
+            xm = (x0 + x1) / 2
+            ym = (y0 + y1) / 2
+
+            xl = xm + nx * edge_label_offset_frac * length
+            yl = ym + ny * edge_label_offset_frac * length
+
+            angle_deg = math.degrees(math.atan2(dy, dx))
+            if abs(dx) < abs(dy):
+                angle_deg = 90.0
+            else:
+                if angle_deg < -90.0:
+                    angle_deg += 180.0
+                elif angle_deg > 90.0:
+                    angle_deg -= 180.0
+
+            label_hover = _build_hover_text(f"{c} → {t}", props)
+
+            annotations.append(
+                dict(
+                    x=xl,
+                    y=yl,
+                    xref="x",
+                    yref="y",
+                    text=str(label),
+                    showarrow=False,
+                    textangle=angle_deg,
+                    font=dict(size=edge_label_font_size),
+                    hovertext=label_hover,
+                    hoverlabel=dict(bgcolor="white"),
+                    ax=0,
+                    ay=0,
+                )
+            )
+
+    return edge_traces, annotations, edge_vmin, edge_vmax
+
+
+def _build_ct_trace(
+    edges: Sequence[Tuple[QubitId, QubitId]],
+    node_positions: Mapping[QubitId, Coord],
+    ct_font_size: int,
+    ct_font_color: str,
+    ct_offset_along_frac: float,
+    ct_offset_normal_frac: float,
+):
+    if not edges:
+        return None
+
+    xs: List[float] = []
+    ys: List[float] = []
+    texts: List[str] = []
+    hovers: List[str] = []
+
+    for c, t in edges:
+        xc, yc = node_positions[c]
+        xt, yt = node_positions[t]
+
+        dx = xt - xc
+        dy = yt - yc
+        length = math.hypot(dx, dy) or 1.0
+        ux, uy = dx / length, dy / length
+        nx, ny = -uy, ux
+
+        cx = xc + ux * ct_offset_along_frac * length + nx * ct_offset_normal_frac * length
+        cy = yc + uy * ct_offset_along_frac * length + ny * ct_offset_normal_frac * length
+        xs.append(cx)
+        ys.append(cy)
+        texts.append("C")
+        hovers.append(f"control: q{c} → q{t}")
+
+        tx = xt - ux * ct_offset_along_frac * length + nx * ct_offset_normal_frac * length
+        ty = yt - uy * ct_offset_along_frac * length + ny * ct_offset_normal_frac * length
+        xs.append(tx)
+        ys.append(ty)
+        texts.append("T")
+        hovers.append(f"target: q{c} → q{t}")
+
+    return go.Scatter(
+        x=xs,
+        y=ys,
+        mode="text",
+        text=texts,
+        textposition="middle center",
+        textfont=dict(size=ct_font_size, color=ct_font_color),
+        hoverinfo="text",
+        hovertext=hovers,
+        showlegend=False,
+    )
+
+
+def _add_edge_colorbar_trace(
+    fig: go.Figure,
+    edge_color_key: str | None,
+    edge_colorscale,
+    edge_vmin: float | None,
+    edge_vmax: float | None,
+    show_colorbar_edges: bool,
+):
+    if (
+        not show_colorbar_edges
+        or edge_color_key is None
+        or edge_vmin is None
+        or edge_vmax is None
+    ):
+        return None
+
+    dummy_vals = [edge_vmin, edge_vmax]
+    trace = go.Scatter(
+        x=[None, None],
+        y=[None, None],
+        mode="markers",
+        marker=dict(
+            size=0.1,
+            color=dummy_vals,
+            colorscale=edge_colorscale,
+            cmin=edge_vmin,
+            cmax=edge_vmax,
+            showscale=True,
+            colorbar=dict(
+                title=edge_color_key,
+                x=1.30,
+                xanchor="center",
+                y=0.5,
+                len=1.0,
+            ),
+        ),
+        hoverinfo="skip",
+        showlegend=False,
+    )
+    fig.add_trace(trace)
+    return trace
 
 def plot_coupling_map_advanced(
     qubits: Sequence[QubitId],
@@ -153,272 +521,52 @@ def plot_coupling_map_advanced(
     if edge_colorscale_range is None:
         edge_colorscale_range = colorscale_range
 
-    node_low, node_high = node_colorscale_range
-    edge_low, edge_high = edge_colorscale_range
-
-    if node_low <= 0.0 and node_high >= 1.0:
-        node_effective_colorscale = node_colorscale
-    else:
-        node_effective_colorscale = _truncate_colorscale(
-            node_colorscale, node_low, node_high
-        )
-
-    if edge_low <= 0.0 and edge_high >= 1.0:
-        edge_effective_colorscale = edge_colorscale
-    else:
-        edge_effective_colorscale = _truncate_colorscale(
-            edge_colorscale, edge_low, edge_high
-        )
-
-    # --------------------------
-    # ノード座標 & 色・ホバー
-    # --------------------------
-    x_nodes: List[float] = []
-    y_nodes: List[float] = []
-    node_hover: List[str] = []
-    node_color_values: List[float | None] = []
-
-    for q in qubits:
-        x, y = node_positions[q]
-        x_nodes.append(x)
-        y_nodes.append(y)
-        node_hover.append(_build_hover_text(f"q{q}", node_props.get(q, {})))
-
-        if node_color_key is not None:
-            node_color_values.append(
-                node_props.get(q, {}).get(node_color_key, None)
-            )
-        else:
-            node_color_values.append(None)
-
-    node_vmin, node_vmax = _min_max(node_color_values)
-    # 任意指定があれば上書き
-    if node_cmin is not None:
-        node_vmin = node_cmin
-    if node_cmax is not None:
-        node_vmax = node_cmax
-
-    if node_color_key is not None and node_vmin is not None and node_vmax is not None:
-        node_marker = dict(
-            size=node_size,
-            color=node_color_values,
-            colorscale=node_effective_colorscale,
-            cmin=node_vmin,
-            cmax=node_vmax,
-            showscale=show_colorbar_nodes,
-            colorbar=dict(
-                title=node_color_key,
-                x=1.05,
-                xanchor="center",  # ★ 追加
-                y=0.5,
-                len=1.0,
-            ),
-            opacity=1.0,
-        )
-    else:
-        node_marker = dict(
-            size=node_size,
-            color="#1f77b4",
-            opacity=1.0,
-        )
-
-    # ノードラベル: 白太字 & q プレフィックスなし（フォント指定可）
-    node_label_font: Dict[str, Any] = dict(
-        size=node_label_font_size,
-        color=node_label_font_color,
+    node_effective_colorscale = _resolve_effective_colorscale(
+        node_colorscale, node_colorscale_range
     )
-    if node_label_font_family is not None:
-        node_label_font["family"] = node_label_font_family
-
-    node_trace = go.Scatter(
-        x=x_nodes,
-        y=y_nodes,
-        mode="markers+text",
-        text=[f"<b>{q}</b>" for q in qubits],
-        textposition="middle center",
-        textfont=node_label_font,
-        hoverinfo="text",
-        hovertext=node_hover,
-        marker=node_marker,
-        showlegend=False,
-        name="NODE_TRACE",  # ★ これを追加
+    edge_effective_colorscale = _resolve_effective_colorscale(
+        edge_colorscale, edge_colorscale_range
     )
 
+    node_trace = _build_node_trace(
+        qubits=qubits,
+        node_positions=node_positions,
+        node_props=node_props,
+        node_color_key=node_color_key,
+        node_size=node_size,
+        node_colorscale=node_effective_colorscale,
+        node_cmin=node_cmin,
+        node_cmax=node_cmax,
+        show_colorbar_nodes=show_colorbar_nodes,
+        node_label_font_size=node_label_font_size,
+        node_label_font_color=node_label_font_color,
+        node_label_font_family=node_label_font_family,
+    )
 
-    # --------------------------
-    # エッジ（線 + ラベル）
-    # --------------------------
-    edge_traces: List[go.Scatter] = []
-    annotations: List[dict] = []  # ラベルは annotation で描画
+    edge_traces, annotations, edge_vmin, edge_vmax = _build_edge_elements(
+        edges=edges,
+        node_positions=node_positions,
+        edge_props=edge_props,
+        edge_color_key=edge_color_key,
+        edge_label_key=edge_label_key,
+        edge_colorscale=edge_colorscale,
+        edge_colorscale_range=edge_colorscale_range,
+        edge_cmin=edge_cmin,
+        edge_cmax=edge_cmax,
+        edge_label_font_size=edge_label_font_size,
+        edge_label_offset_frac=edge_label_offset_frac,
+    )
 
-    if edge_color_key is not None:
-        edge_color_values: List[float | None] = [
-            edge_props.get((c, t), {}).get(edge_color_key, None)
-            for (c, t) in edges
-        ]
-    else:
-        edge_color_values = []
-
-    edge_vmin, edge_vmax = _min_max(edge_color_values)
-    if edge_cmin is not None:
-        edge_vmin = edge_cmin
-    if edge_cmax is not None:
-        edge_vmax = edge_cmax
-
-    def edge_to_color(v: float | None) -> str:
-        """エッジの数値 v を色にマップする。
-
-        v が cmin/cmax の外にあっても、0〜1 にクランプして
-        色スケールの端の色に“飽和”するようにする。
-        """
-        if (
-            edge_color_key is None
-            or v is None
-            or edge_vmin is None
-            or edge_vmax is None
-        ):
-            return "#888888"
-
-        # 正規化
-        if edge_vmax == edge_vmin:
-            ratio = 0.5
-        else:
-            ratio = (v - edge_vmin) / (edge_vmax - edge_vmin)
-
-        # ここで 0〜1 にクランプ（外挿させない）
-        ratio = max(0.0, min(1.0, ratio))
-
-        # edge_colorscale_range にマッピング
-        mapped = edge_low + (edge_high - edge_low) * ratio
-        mapped = max(0.0, min(1.0, mapped))
-
-        return px.colors.sample_colorscale(edge_colorscale, [mapped])[0]
-
-    for (c, t) in edges:
-        x0, y0 = node_positions[c]
-        x1, y1 = node_positions[t]
-
-        props = edge_props.get((c, t), {})
-        hover_text = _build_hover_text(f"{c} → {t}", props)
-        color_value = props.get(edge_color_key, None) if edge_color_key else None
-        line_color = edge_to_color(color_value)
-
-        # Edge line
-        edge_traces.append(
-            go.Scatter(
-                x=[x0, x1],
-                y=[y0, y1],
-                mode="lines",
-                line=dict(width=6, color=line_color),
-                hoverinfo="text",
-                hovertext=[hover_text, hover_text],
-                showlegend=False,
-            )
-        )
-
-        # ----------------------
-        # エッジラベル (annotation)
-        # ----------------------
-        if edge_label_key is not None and edge_label_key in props:
-            label = props[edge_label_key]
-
-            dx = x1 - x0
-            dy = y1 - y0
-            length = math.hypot(dx, dy) or 1.0
-            ux, uy = dx / length, dy / length
-            nx, ny = -uy, ux  # 垂直方向
-
-            # ラベルが出る側を統一
-            if abs(dx) >= abs(dy):
-                # 横長エッジ → 常に「上側」（+y）
-                if ny < 0:
-                    nx, ny = -nx, -ny
-            else:
-                # 縦長エッジ → 常に「右側」（+x）
-                if nx < 0:
-                    nx, ny = -nx, -ny
-
-            xm = (x0 + x1) / 2
-            ym = (y0 + y1) / 2
-
-            xl = xm + nx * edge_label_offset_frac * length
-            yl = ym + ny * edge_label_offset_frac * length
-
-            angle_deg = math.degrees(math.atan2(dy, dx))
-            # 縦エッジは一定方向に固定
-            if abs(dx) < abs(dy):
-                angle_deg = 90.0
-            else:
-                if angle_deg < -90.0:
-                    angle_deg += 180.0
-                elif angle_deg > 90.0:
-                    angle_deg -= 180.0
-
-            label_hover = _build_hover_text(f"{c} → {t}", props)
-
-            annotations.append(
-                dict(
-                    x=xl,
-                    y=yl,
-                    xref="x",
-                    yref="y",
-                    text=str(label),
-                    showarrow=False,
-                    textangle=angle_deg,
-                    font=dict(size=edge_label_font_size),
-                    hovertext=label_hover,
-                    hoverlabel=dict(bgcolor="white"),
-                    ax=0,
-                    ay=0,
-                )
-            )
-
-    # --------------------------
-    # C/T マーカー（ON/OFF）
-    # --------------------------
+    ct_trace = None
     if show_ct_markers:
-        xs = []
-        ys = []
-        texts = []
-        hovers = []
-
-        for c, t in edges:
-            xc, yc = node_positions[c]
-            xt, yt = node_positions[t]
-
-            dx = xt - xc
-            dy = yt - yc
-            length = math.hypot(dx, dy) or 1.0
-            ux, uy = dx / length, dy / length
-            nx, ny = -uy, ux
-
-            cx = xc + ux * ct_offset_along_frac * length + nx * ct_offset_normal_frac * length
-            cy = yc + uy * ct_offset_along_frac * length + ny * ct_offset_normal_frac * length
-            xs.append(cx)
-            ys.append(cy)
-            texts.append("C")
-            hovers.append(f"control: q{c} → q{t}")
-
-            tx = xt - ux * ct_offset_along_frac * length + nx * ct_offset_normal_frac * length
-            ty = yt - uy * ct_offset_along_frac * length + ny * ct_offset_normal_frac * length
-            xs.append(tx)
-            ys.append(ty)
-            texts.append("T")
-            hovers.append(f"target: q{c} → q{t}")
-
-        ct_trace = go.Scatter(
-            x=xs,
-            y=ys,
-            mode="text",
-            text=texts,
-            textposition="middle center",
-            textfont=dict(size=ct_font_size, color=ct_font_color),
-            hoverinfo="text",
-            hovertext=hovers,
-            showlegend=False,
+        ct_trace = _build_ct_trace(
+            edges=edges,
+            node_positions=node_positions,
+            ct_font_size=ct_font_size,
+            ct_font_color=ct_font_color,
+            ct_offset_along_frac=ct_offset_along_frac,
+            ct_offset_normal_frac=ct_offset_normal_frac,
         )
-    else:
-        ct_trace = None
 
     # --------------------------
     # Figure 組み立て
@@ -442,38 +590,14 @@ def plot_coupling_map_advanced(
 
     fig.update_yaxes(scaleanchor="x", scaleratio=1)
 
-    # --- エッジ用カラーバー ---
-    if (
-        show_colorbar_edges
-        and edge_color_key is not None
-        and edge_vmin is not None
-        and edge_vmax is not None
-    ):
-        dummy_vals = [edge_vmin, edge_vmax]
-        fig.add_trace(
-            go.Scatter(
-                x=[None, None],
-                y=[None, None],
-                mode="markers",
-                marker=dict(
-                    size=0.1,
-                    color=dummy_vals,
-                    colorscale=edge_effective_colorscale,
-                    cmin=edge_vmin,
-                    cmax=edge_vmax,
-                    showscale=True,
-                    colorbar=dict(
-                        title=edge_color_key,
-                        x=1.30,
-                        xanchor="center",  # ★ 追加
-                        y=0.5,
-                        len=1.0,
-                    ),
-                ),
-                hoverinfo="skip",
-                showlegend=False,
-            )
-        )
+    _add_edge_colorbar_trace(
+        fig=fig,
+        edge_color_key=edge_color_key,
+        edge_colorscale=edge_effective_colorscale,
+        edge_vmin=edge_vmin,
+        edge_vmax=edge_vmax,
+        show_colorbar_edges=show_colorbar_edges,
+    )
 
     return fig
 
@@ -483,6 +607,9 @@ def add_node_color_dropdown(
     qubits,
     node_props,
     node_color_keys,
+    show_colorbar_nodes: bool,
+    node_color_param_styles: Mapping[str, ColorStyle] | None = None,
+    node_base_style: ColorStyle | None = None,
 ) -> go.Figure:
     """
     ノード色をプルダウンで切り替える。
@@ -504,39 +631,53 @@ def add_node_color_dropdown(
         print("WARNING: NODE_TRACE not found, skip dropdown.")
         return fig
 
+    param_styles = node_color_param_styles or {}
+    node_trace_indices: list[int] = []
+    key_to_trace_index: Dict[str, int] = {}
     base_trace = fig.data[node_trace_index]
     base_marker = base_trace.marker
 
     # 2. カラーバー位置や colorscale は base_marker からそのまま使う
-    #    （TOML の設定がここに反映されている前提）
     colorscale = getattr(base_marker, "colorscale", "Viridis")
     cb = getattr(base_marker, "colorbar", None)
     cb_x = getattr(cb, "x", 1.05)
     cb_y = getattr(cb, "y", 0.5)
     cb_len = getattr(cb, "len", 1.0)
 
+    base_style = node_base_style or ColorStyle(
+        colorscale=colorscale,
+        colorscale_range=(0.0, 1.0),
+        cmin=getattr(base_marker, "cmin", None),
+        cmax=getattr(base_marker, "cmax", None),
+    )
+
     # 元の NODE_TRACE は非表示にし、カラーバーも消しておく
     base_trace.visible = False
     if hasattr(base_marker, "showscale"):
         base_marker.showscale = False
 
-    added_traces: list[int] = []
-
     # 3. 各 node_color_key ごとに新しい node trace を作る
     for key in node_color_keys:
         vals = [node_props.get(q, {}).get(key, None) for q in qubits]
-        vmin, vmax = _min_max(vals)
+        vmin, vmax = _extract_value_range(vals, None, None)
         if vmin is None or vmax is None:
-            # この key で値が取れないならスキップ
             continue
+
+        style = param_styles.get(key, base_style)
+        effective_colorscale = _resolve_effective_colorscale(
+            style.colorscale, style.colorscale_range
+        )
+
+        marker_cmin = style.cmin if style.cmin is not None else vmin
+        marker_cmax = style.cmax if style.cmax is not None else vmax
 
         new_marker = dict(
             size=base_marker.size,
             color=vals,
-            colorscale=colorscale,
-            cmin=vmin,
-            cmax=vmax,
-            showscale=True,
+            colorscale=effective_colorscale,
+            cmin=marker_cmin,
+            cmax=marker_cmax,
+            showscale=show_colorbar_nodes,
             colorbar=dict(
                 title=key,
                 x=cb_x,
@@ -556,38 +697,34 @@ def add_node_color_dropdown(
             hovertext=base_trace.hovertext,
             marker=new_marker,
             showlegend=False,
-            visible=False,  # 最後に1つだけ True にする
+            visible=False,
             name=f"NODE_TRACE_{key}",
         )
         fig.add_trace(new_trace)
-        added_traces.append(len(fig.data) - 1)
+        trace_index = len(fig.data) - 1
+        node_trace_indices.append(trace_index)
+        key_to_trace_index[key] = trace_index
 
-    if not added_traces:
+    if not node_trace_indices:
         return fig
 
     # 最初の候補だけ表示
-    fig.data[added_traces[0]].visible = True
+    fig.data[node_trace_indices[0]].visible = True
 
     # 4. updatemenus で visible を切り替える
     buttons = []
-    for idx, key in enumerate(node_color_keys):
-        if idx >= len(added_traces):
+    for key in node_color_keys:
+        target_trace_id = key_to_trace_index.get(key)
+        if target_trace_id is None:
             continue
-        target_index = added_traces[idx]
 
-        visible = []
-        for i, _tr in enumerate(fig.data):
-            if i in added_traces:
-                visible.append(i == target_index)
-            else:
-                # エッジや C/T など他は常に表示
-                visible.append(True)
+        visible_subset = [trace_idx == target_trace_id for trace_idx in node_trace_indices]
 
         buttons.append(
             dict(
                 label=key,
-                method="update",
-                args=[{"visible": visible}],
+                method="restyle",
+                args=[{"visible": visible_subset}, node_trace_indices],
             )
         )
 
@@ -626,11 +763,9 @@ def add_edge_color_dropdown(
     node_positions,
     edge_props,
     edge_color_keys,
-    edge_colorscale: str = "Viridis",
-    edge_colorscale_range: Tuple[float, float] = (0.0, 1.0),
-    edge_cmin: float | None = None,
-    edge_cmax: float | None = None,
     show_colorbar_edges: bool = True,
+    edge_color_param_styles: Mapping[str, ColorStyle] | None = None,
+    edge_base_style: ColorStyle | None = None,
 ) -> go.Figure:
     """
     エッジの色をプルダウンで切り替える。
@@ -643,15 +778,18 @@ def add_edge_color_dropdown(
 
     if not edge_color_keys:
         return fig
-    
+
     edge_cb_x = 1.30
     edge_cb_y = 0.5
     edge_cb_len = 1.0
 
-    # --- 0. ベースの可視状態を記録 ---
-    base_visible = [
-        (tr.visible if tr.visible is not None else True) for tr in fig.data
-    ]
+    param_styles = edge_color_param_styles or {}
+    base_style = edge_base_style or ColorStyle(
+        colorscale="Viridis",
+        colorscale_range=(0.0, 1.0),
+        cmin=None,
+        cmax=None,
+    )
 
     # --- 1. もともとの edge trace を非表示にする ---
     num_edges = len(edges)
@@ -675,31 +813,6 @@ def add_edge_color_dropdown(
             tr.visible = False
             tr.marker.showscale = False
 
-    # edge colorscale の準備（truncate）
-    low, high = edge_colorscale_range
-    if low <= 0.0 and high >= 1.0:
-        edge_effective_colorscale = edge_colorscale
-    else:
-        edge_effective_colorscale = _truncate_colorscale(
-            edge_colorscale, low, high
-        )
-
-    # v -> 色 へのマッピング関数（edge_cmin/cmax を考慮）
-    def make_edge_val_to_color(vmin: float, vmax: float):
-        def _val_to_color(v: float | None) -> str:
-            if v is None:
-                return "#888888"
-            if vmax == vmin:
-                ratio = 0.5
-            else:
-                ratio = (v - vmin) / (vmax - vmin)
-            ratio = max(0.0, min(1.0, ratio))
-            mapped = low + (high - low) * ratio
-            mapped = max(0.0, min(1.0, mapped))
-            return px.colors.sample_colorscale(edge_colorscale, [mapped])[0]
-
-        return _val_to_color
-
     # すべての edge 関連 trace index を集めておく
     all_edge_related: set[int] = set(base_edge_indices)
     if base_edge_colorbar_index is not None:
@@ -710,18 +823,19 @@ def add_edge_color_dropdown(
 
     for key in edge_color_keys:
         vals = [edge_props.get((c, t), {}).get(key, None) for (c, t) in edges]
-        vmin, vmax = _min_max(vals)
-
-        if edge_cmin is not None:
-            vmin = edge_cmin
-        if edge_cmax is not None:
-            vmax = edge_cmax
+        style = param_styles.get(key, base_style)
+        vmin, vmax = _extract_value_range(vals, style.cmin, style.cmax)
 
         if vmin is None or vmax is None:
             edge_groups.append([])
             continue
 
-        val_to_color = make_edge_val_to_color(vmin, vmax)
+        val_to_color = _create_value_to_color_mapper(
+            style.colorscale,
+            style.colorscale_range,
+            vmin,
+            vmax,
+        )
 
         group_indices: list[int] = []
 
@@ -752,6 +866,9 @@ def add_edge_color_dropdown(
         # --- カラーバー用のダミー trace ---
         if show_colorbar_edges:
             dummy_vals = [vmin, vmax]
+            effective_colorscale = _resolve_effective_colorscale(
+                style.colorscale, style.colorscale_range
+            )
             dummy_trace = go.Scatter(
                 x=[None, None],
                 y=[None, None],
@@ -759,7 +876,7 @@ def add_edge_color_dropdown(
                 marker=dict(
                     size=0.1,
                     color=dummy_vals,
-                    colorscale=edge_effective_colorscale,
+                    colorscale=effective_colorscale,
                     cmin=vmin,
                     cmax=vmax,
                     showscale=True,
@@ -908,9 +1025,39 @@ def main() -> None:
         return (float(v[0]), float(v[1]))
 
     base_range = _get_range("colorscale_range", (0.5, 1.0))
+    default_colorscale = cfg.get("colorscale", "plasma_r")
 
-    node_range = _get_range("node_colorscale_range")
-    edge_range = _get_range("edge_colorscale_range")
+    node_range = _get_range("node_colorscale_range") or base_range
+    edge_range = _get_range("edge_colorscale_range") or base_range
+
+    node_base_style = ColorStyle(
+        colorscale=cfg.get("node_colorscale", default_colorscale),
+        colorscale_range=node_range,
+        cmin=cfg.get("node_cmin"),
+        cmax=cfg.get("node_cmax"),
+    )
+    edge_base_style = ColorStyle(
+        colorscale=cfg.get("edge_colorscale", default_colorscale),
+        colorscale_range=edge_range,
+        cmin=cfg.get("edge_cmin"),
+        cmax=cfg.get("edge_cmax"),
+    )
+
+    node_param_styles = _build_param_styles(
+        cfg.get("node_color_params"), node_base_style
+    )
+    edge_param_styles = _build_param_styles(
+        cfg.get("edge_color_params"), edge_base_style
+    )
+
+    default_node_key = cfg.get("node_color_key", "T1_us")
+    default_edge_key = cfg.get("edge_color_key", "cx_error")
+
+    node_style_for_plot = node_param_styles.get(default_node_key, node_base_style)
+    edge_style_for_plot = edge_param_styles.get(default_edge_key, edge_base_style)
+
+    show_colorbar_nodes = cfg.get("show_colorbar_nodes", True)
+    show_colorbar_edges = cfg.get("show_colorbar_edges", True)
 
     fig = plot_coupling_map_advanced(
         qubits=qubits,
@@ -918,26 +1065,26 @@ def main() -> None:
         node_positions=node_positions,
         node_props=node_props,
         edge_props=edge_props,
-        node_color_key=cfg.get("node_color_key", "T1_us"),
-        edge_color_key=cfg.get("edge_color_key", "cx_error"),
+        node_color_key=default_node_key,
+        edge_color_key=default_edge_key,
         edge_label_key=cfg.get("edge_label_key", "cx_error"),
         node_size=cfg.get("node_size", 40),
 
-        colorscale=cfg.get("colorscale", "plasma_r"),
+        colorscale=default_colorscale,
         colorscale_range=base_range,
-        node_colorscale=cfg.get("node_colorscale"),
-        node_colorscale_range=node_range,
-        edge_colorscale=cfg.get("edge_colorscale"),
-        edge_colorscale_range=edge_range,
+        node_colorscale=node_style_for_plot.colorscale,
+        node_colorscale_range=node_style_for_plot.colorscale_range,
+        edge_colorscale=edge_style_for_plot.colorscale,
+        edge_colorscale_range=edge_style_for_plot.colorscale_range,
 
-        node_cmin=cfg.get("node_cmin"),
-        node_cmax=cfg.get("node_cmax"),
-        edge_cmin=cfg.get("edge_cmin"),
-        edge_cmax=cfg.get("edge_cmax"),
+        node_cmin=node_style_for_plot.cmin,
+        node_cmax=node_style_for_plot.cmax,
+        edge_cmin=edge_style_for_plot.cmin,
+        edge_cmax=edge_style_for_plot.cmax,
 
         title=cfg.get("title", "Example backend (T1 / CNOT error)"),
-        show_colorbar_nodes=cfg.get("show_colorbar_nodes", True),
-        show_colorbar_edges=cfg.get("show_colorbar_edges", True),
+        show_colorbar_nodes=show_colorbar_nodes,
+        show_colorbar_edges=show_colorbar_edges,
         show_ct_markers=cfg.get("show_ct_markers", True),
 
         node_label_font_size=cfg.get("node_label_font_size", 14),
@@ -956,7 +1103,6 @@ def main() -> None:
     )
 
     # --- ★ エッジ側ドロップダウンを追加 ---
-    default_edge_key = cfg.get("edge_color_key", "cx_error")
     dropdown_edge_keys = cfg.get("edge_color_keys")
     if dropdown_edge_keys is None:
         edge_color_keys = [default_edge_key]
@@ -970,18 +1116,14 @@ def main() -> None:
         node_positions=node_positions,
         edge_props=edge_props,
         edge_color_keys=edge_color_keys,
-        edge_colorscale=cfg.get("edge_colorscale")
-        or cfg.get("colorscale", "plasma_r"),
-        edge_colorscale_range=edge_range or base_range,
-        edge_cmin=cfg.get("edge_cmin"),
-        edge_cmax=cfg.get("edge_cmax"),
-        show_colorbar_edges=cfg.get("show_colorbar_edges", True),
+        show_colorbar_edges=show_colorbar_edges,
+        edge_color_param_styles=edge_param_styles,
+        edge_base_style=edge_base_style,
     )
 
     
     # --- ★ ここからドロップダウン用設定を TOML から取得 ---
     # デフォルト: node_color_key だけを候補にする
-    default_node_key = cfg.get("node_color_key", "T1_us")
     dropdown_keys = cfg.get("node_color_keys")  # TOML で複数指定できるようにする
     if dropdown_keys is None:
         node_color_keys = [default_node_key]
@@ -994,10 +1136,12 @@ def main() -> None:
         qubits=qubits,
         node_props=node_props,
         node_color_keys=node_color_keys,
-        # colorscale や colorbar の位置は NODE_TRACE 側から読むのでここでは渡さない
+        show_colorbar_nodes=show_colorbar_nodes,
+        node_color_param_styles=node_param_styles,
+        node_base_style=node_base_style,
     )
 
-    fig.write_html("html/sample.html")
+    fig.write_html("build/sample.html")
 
 
 if __name__ == "__main__":
