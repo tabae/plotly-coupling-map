@@ -43,7 +43,6 @@ def load_plot_config(path: str) -> Dict[str, Any]:
         node_size = 40
         show_colorbar_nodes = true
         show_colorbar_edges = true
-        show_ct_markers = true
     """
     with open(path, "rb") as f:
         data = tomllib.load(f)
@@ -193,7 +192,7 @@ def _build_node_trace(
         x, y = node_positions[q]
         x_nodes.append(x)
         y_nodes.append(y)
-        node_hover.append(_build_hover_text(f"q{q}", node_props.get(q, {})))
+        node_hover.append(_build_hover_text(f"Q{q}", node_props.get(q, {})))
 
         if node_color_key is not None:
             node_color_values.append(node_props.get(q, {}).get(node_color_key, None))
@@ -288,7 +287,7 @@ def _build_edge_elements(
         x1, y1 = node_positions[t]
 
         props = edge_props.get((c, t), {})
-        hover_text = _build_hover_text(f"{c} → {t}", props)
+        hover_text = _build_hover_text(f"Q{c} → Q{t}", props)
         color_value = props.get(edge_color_key, None) if edge_color_key else None
         line_color = edge_to_color(color_value)
 
@@ -355,59 +354,6 @@ def _build_edge_elements(
             )
 
     return edge_traces, annotations, edge_vmin, edge_vmax
-
-
-def _build_ct_trace(
-    edges: Sequence[Tuple[QubitId, QubitId]],
-    node_positions: Mapping[QubitId, Coord],
-    ct_font_size: int,
-    ct_font_color: str,
-    ct_offset_along_frac: float,
-    ct_offset_normal_frac: float,
-):
-    if not edges:
-        return None
-
-    xs: List[float] = []
-    ys: List[float] = []
-    texts: List[str] = []
-    hovers: List[str] = []
-
-    for c, t in edges:
-        xc, yc = node_positions[c]
-        xt, yt = node_positions[t]
-
-        dx = xt - xc
-        dy = yt - yc
-        length = math.hypot(dx, dy) or 1.0
-        ux, uy = dx / length, dy / length
-        nx, ny = -uy, ux
-
-        cx = xc + ux * ct_offset_along_frac * length + nx * ct_offset_normal_frac * length
-        cy = yc + uy * ct_offset_along_frac * length + ny * ct_offset_normal_frac * length
-        xs.append(cx)
-        ys.append(cy)
-        texts.append("C")
-        hovers.append(f"control: q{c} → q{t}")
-
-        tx = xt - ux * ct_offset_along_frac * length + nx * ct_offset_normal_frac * length
-        ty = yt - uy * ct_offset_along_frac * length + ny * ct_offset_normal_frac * length
-        xs.append(tx)
-        ys.append(ty)
-        texts.append("T")
-        hovers.append(f"target: q{c} → q{t}")
-
-    return go.Scatter(
-        x=xs,
-        y=ys,
-        mode="text",
-        text=texts,
-        textposition="middle center",
-        textfont=dict(size=ct_font_size, color=ct_font_color),
-        hoverinfo="text",
-        hovertext=hovers,
-        showlegend=False,
-    )
 
 
 def _add_edge_colorbar_trace(
@@ -480,17 +426,12 @@ def plot_coupling_map_advanced(
     title: str = "Coupling map",
     show_colorbar_nodes: bool = True,
     show_colorbar_edges: bool = False,
-    show_ct_markers: bool = True,
     # ラベル・フォント系
     node_label_font_size: int = 14,
     node_label_font_color: str = "white",
     node_label_font_family: str | None = None,
     edge_label_font_size: int = 12,
     edge_label_offset_frac: float = 0.075,
-    ct_font_size: int = 10,
-    ct_font_color: str = "#333333",
-    ct_offset_along_frac: float = 0.10,
-    ct_offset_normal_frac: float = 0.05,
     # 図のサイズ
     figure_width: int = 600,
     figure_height: int = 600,
@@ -557,23 +498,10 @@ def plot_coupling_map_advanced(
         edge_label_offset_frac=edge_label_offset_frac,
     )
 
-    ct_trace = None
-    if show_ct_markers:
-        ct_trace = _build_ct_trace(
-            edges=edges,
-            node_positions=node_positions,
-            ct_font_size=ct_font_size,
-            ct_font_color=ct_font_color,
-            ct_offset_along_frac=ct_offset_along_frac,
-            ct_offset_normal_frac=ct_offset_normal_frac,
-        )
-
     # --------------------------
     # Figure 組み立て
     # --------------------------
     traces = [*edge_traces]
-    if ct_trace is not None:
-        traces.append(ct_trace)
     traces.append(node_trace)
 
     fig = go.Figure(data=traces)
@@ -628,7 +556,6 @@ def add_node_color_dropdown(
             break
 
     if node_trace_index is None:
-        print("WARNING: NODE_TRACE not found, skip dropdown.")
         return fig
 
     param_styles = node_color_param_styles or {}
@@ -647,8 +574,8 @@ def add_node_color_dropdown(
     base_style = node_base_style or ColorStyle(
         colorscale=colorscale,
         colorscale_range=(0.0, 1.0),
-        cmin=getattr(base_marker, "cmin", None),
-        cmax=getattr(base_marker, "cmax", None),
+        cmin=None,
+        cmax=None,
     )
 
     # 元の NODE_TRACE は非表示にし、カラーバーも消しておく
@@ -659,24 +586,18 @@ def add_node_color_dropdown(
     # 3. 各 node_color_key ごとに新しい node trace を作る
     for key in node_color_keys:
         vals = [node_props.get(q, {}).get(key, None) for q in qubits]
-        vmin, vmax = _extract_value_range(vals, None, None)
-        if vmin is None or vmax is None:
-            continue
-
         style = param_styles.get(key, base_style)
+        vmin, vmax = _extract_value_range(vals, style.cmin, style.cmax)
         effective_colorscale = _resolve_effective_colorscale(
             style.colorscale, style.colorscale_range
         )
-
-        marker_cmin = style.cmin if style.cmin is not None else vmin
-        marker_cmax = style.cmax if style.cmax is not None else vmax
 
         new_marker = dict(
             size=base_marker.size,
             color=vals,
             colorscale=effective_colorscale,
-            cmin=marker_cmin,
-            cmax=marker_cmax,
+            cmin=vmin,
+            cmax=vmax,
             showscale=show_colorbar_nodes,
             colorbar=dict(
                 title=key,
@@ -1033,14 +954,14 @@ def main() -> None:
     node_base_style = ColorStyle(
         colorscale=cfg.get("node_colorscale", default_colorscale),
         colorscale_range=node_range,
-        cmin=cfg.get("node_cmin"),
-        cmax=cfg.get("node_cmax"),
+        cmin=None,
+        cmax=None,
     )
     edge_base_style = ColorStyle(
         colorscale=cfg.get("edge_colorscale", default_colorscale),
         colorscale_range=edge_range,
-        cmin=cfg.get("edge_cmin"),
-        cmax=cfg.get("edge_cmax"),
+        cmin=None,
+        cmax=None,
     )
 
     node_param_styles = _build_param_styles(
@@ -1085,18 +1006,12 @@ def main() -> None:
         title=cfg.get("title", "Example backend (T1 / CNOT error)"),
         show_colorbar_nodes=show_colorbar_nodes,
         show_colorbar_edges=show_colorbar_edges,
-        show_ct_markers=cfg.get("show_ct_markers", True),
 
         node_label_font_size=cfg.get("node_label_font_size", 14),
         node_label_font_color=cfg.get("node_label_font_color", "white"),
         node_label_font_family=cfg.get("node_label_font_family"),
         edge_label_font_size=cfg.get("edge_label_font_size", 12),
         edge_label_offset_frac=cfg.get("edge_label_offset_frac", 0.075),
-
-        ct_font_size=cfg.get("ct_font_size", 10),
-        ct_font_color=cfg.get("ct_font_color", "#333333"),
-        ct_offset_along_frac=cfg.get("ct_offset_along_frac", 0.10),
-        ct_offset_normal_frac=cfg.get("ct_offset_normal_frac", 0.05),
 
         figure_width=cfg.get("figure_width", 600),
         figure_height=cfg.get("figure_height", 600),
