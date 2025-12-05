@@ -1,12 +1,15 @@
 [plot]
 title = "Sample Coupling Map"
 
-node_color_key = "T1_us"
-edge_color_key = "cx_error"
-edge_label_key = "cx_error"
+node_color_key = "fidelity"
+edge_color_key = "fidelity"
+edge_label_key = "fidelity"
 
-edge_color_keys = ["cx_error", "duration_ns"]
-node_color_keys = ["T1_us", "freq_GHz"]
+edge_color_keys = ["fidelity", "cx_duration", "rzx90_duration"]
+node_color_keys = ["fidelity", "readout_error", "t1", "t2"]
+
+edge_label_font_size = 12
+edge_label_offset_frac = 0.1
 
 colorscale = "plasma_r"
 colorscale_range = [0.5, 1.0]
@@ -28,30 +31,46 @@ show_ct_markers = false
 show_title = true
 show_edge_labels = true
 
-figure_width = 900
-figure_height = 600
+figure_width = 1200
+figure_height = 400
 
 # ★ ノード用：パラメータごとの上書き設定
-[plot.node_color_params.T1_us]
+[plot.node_color_params.fidelity]
 colorscale       = "plasma_r"
 colorscale_range = [0.5, 1.0]
-cmin = 60.0
-cmax = 90.0
+cmin = 0.99
+cmax = 1.0
 
-[plot.node_color_params.freq_GHz]
-colorscale       = "Viridis"
-colorscale_range = [0.0, 1.0]
-# cmin/cmax 省略時は自動 (データの min/max)
+[plot.node_color_params.readout_error]
+colorscale       = "plasma"
+colorscale_range = [0.0, 0.5]
+cmin = 0.9
+cmax = 0.1
+
+[plot.node_color_params.t1]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.0
+cmax = 150.0
+
+[plot.node_color_params.t2]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.0
+cmax = 150.0
 
 
 # ★ エッジ用：パラメータごとの上書き設定
-[plot.edge_color_params.cx_error]
-colorscale       = "plasma"
-colorscale_range = [0.0, 0.5]
-cmin = 0.005
-cmax = 0.012
+[plot.edge_color_params.fidelity]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.99
+cmax = 1.0
 
-[plot.edge_color_params.duration_ns]
-colorscale       = "Viridis"
+[plot.edge_color_params.cx_duration]
+colorscale       = "viridis_r"
 colorscale_range = [0.0, 1.0]
-# cmin/cmax 省略 → データから自動
+
+[plot.edge_color_params.rzx90_duration]
+colorscale       = "viridis_r"
+colorscale_range = [0.0, 1.0]

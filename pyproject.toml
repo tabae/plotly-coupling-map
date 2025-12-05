@@ -8,4 +8,5 @@ dependencies = [
     "networkx>=3.6",
     "numpy>=2.3.5",
     "plotly>=6.5.0",
+    "requests>=2.32.5",
 ]

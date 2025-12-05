@@ -35,9 +35,9 @@ def load_plot_config(path: str) -> Dict[str, Any]:
     例: config.toml
 
         [plot]
-        node_color_key = "T1_us"
-        edge_color_key = "cx_error"
-        edge_label_key = "cx_error"
+        node_color_key = "fidelity"
+        edge_color_key = "fidelity"
+        edge_label_key = "fidelity"
         colorscale = "plasma_r"
         colorscale_range = [0.5, 1.0]
         node_size = 40
@@ -306,6 +306,8 @@ def _build_edge_elements(
 
         if show_edge_labels and edge_label_key is not None and edge_label_key in props:
             label = props[edge_label_key]
+            if isinstance(label, float):
+                label = f"{label:.3f}"
 
             dx = x1 - x0
             dy = y1 - y0
@@ -943,8 +945,8 @@ def plot_coupling_map(qubits: list[int],
         cfg.get("edge_color_params"), edge_base_style
     )
 
-    default_node_key = cfg.get("node_color_key", "T1_us")
-    default_edge_key = cfg.get("edge_color_key", "cx_error")
+    default_node_key = cfg.get("node_color_key", "fidelity")
+    default_edge_key = cfg.get("edge_color_key", "fidelity")
 
     node_style_for_plot = node_param_styles.get(default_node_key, node_base_style)
     edge_style_for_plot = edge_param_styles.get(default_edge_key, edge_base_style)
@@ -960,7 +962,7 @@ def plot_coupling_map(qubits: list[int],
         edge_props=edge_props,
         node_color_key=default_node_key,
         edge_color_key=default_edge_key,
-        edge_label_key=cfg.get("edge_label_key", "cx_error"),
+        edge_label_key=cfg.get("edge_label_key", "fidelity"),
         node_size=cfg.get("node_size", 40),
 
         colorscale=default_colorscale,

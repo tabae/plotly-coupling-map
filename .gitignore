@@ -102,3 +102,6 @@ Thumbs.db
 # Local settings
 *.env
 .env.*
+
+# Sample data
+device_topology_sim.json
