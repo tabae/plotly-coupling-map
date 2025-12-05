@@ -399,7 +399,7 @@ def _add_edge_colorbar_trace(
     fig.add_trace(trace)
     return trace
 
-def plot_coupling_map_advanced(
+def plot_coupling_map_internal(
     qubits: Sequence[QubitId],
     edges: Sequence[Tuple[QubitId, QubitId]],
     node_positions: Mapping[QubitId, Coord],
@@ -896,49 +896,17 @@ def add_edge_color_dropdown(
 
 
 
-def main() -> None:
-    qubits = [0, 1, 2, 3, 4, 5, 6, 7]
-    node_positions: Dict[int, Coord] = {
-        0: (0, 0),
-        1: (1, 0),
-        2: (0, 1),
-        3: (1, 1),
-        4: (2, 0),
-        5: (3, 0),
-        6: (2, 1),
-        7: (3, 1),
-    }
-    edges = [(0, 1), (0, 2), (3, 1), (3, 2),
-             (4, 5), (4, 6), (7, 5), (7, 6),
-             (4, 1), (3, 6)]
-
-    node_props: Dict[int, Dict[str, float]] = {
-        0: {"freq_GHz": 5.1, "T1_us": 80},
-        1: {"freq_GHz": 5.2, "T1_us": 70},
-        2: {"freq_GHz": 5.0, "T1_us": 90},
-        3: {"freq_GHz": 5.3, "T1_us": 60},
-        4: {"freq_GHz": 5.1, "T1_us": 75},
-        5: {"freq_GHz": 5.2, "T1_us": 65},
-        6: {"freq_GHz": 5.0, "T1_us": 85},
-        7: {"freq_GHz": 5.3, "T1_us": 55},
-    }
-
-    edge_props: EdgeProps = {
-        (0, 1): {"cx_error": 1.0e-2, "duration_ns": 200},
-        (0, 2): {"cx_error": 5.0e-3, "duration_ns": 220},
-        (3, 1): {"cx_error": 8.0e-3, "duration_ns": 210},
-        (3, 2): {"cx_error": 1.2e-2, "duration_ns": 230},
-        (4, 5): {"cx_error": 9.0e-3, "duration_ns": 200},
-        (4, 6): {"cx_error": 4.0e-3, "duration_ns": 220},
-        (7, 5): {"cx_error": 7.0e-3, "duration_ns": 210},
-        (7, 6): {"cx_error": 1.1e-2, "duration_ns": 230},
-        (4, 1): {"cx_error": 1.3e-2, "duration_ns": 240},
-        (3, 6): {"cx_error": 6.0e-3, "duration_ns": 225},
-    }
-
+def plot_coupling_map(qubits: list[int],
+                      node_positions: Dict[int, Coord],
+                      edges: list[Tuple[int, int]],
+                      node_props: Dict[int, Dict[str, float]],
+                      edge_props: EdgeProps,
+                      filename: str = "coupling_map.html",
+                      config_file: str = "config.toml",
+                      ) -> None:
     # --- TOML 設定読込 (Task5) ---
     try:
-        cfg = load_plot_config("config.toml")
+        cfg = load_plot_config(config_file)
     except FileNotFoundError:
         cfg = {}
 
@@ -984,7 +952,7 @@ def main() -> None:
     show_colorbar_nodes = cfg.get("show_colorbar_nodes", True)
     show_colorbar_edges = cfg.get("show_colorbar_edges", True)
 
-    fig = plot_coupling_map_advanced(
+    fig = plot_coupling_map_internal(
         qubits=qubits,
         edges=edges,
         node_positions=node_positions,
@@ -1062,9 +1030,6 @@ def main() -> None:
         node_base_style=node_base_style,
     )
 
-    fig.write_html("build/sample.html")
+    fig.write_html(filename)
 
-
-if __name__ == "__main__":
-
-    main()
+    print(f"Coupling map saved to: {filename}")
