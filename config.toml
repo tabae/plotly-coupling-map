@@ -1,9 +1,10 @@
 [plot]
-node_color_key = "T1_us"                # 初期表示
+title = "Sample Coupling Map"
+
+node_color_key = "T1_us"
 edge_color_key = "cx_error"
 edge_label_key = "cx_error"
 
-# ドロップダウンに出したい候補
 edge_color_keys = ["cx_error", "duration_ns"]
 node_color_keys = ["T1_us", "freq_GHz"]
 
@@ -16,7 +17,6 @@ node_colorscale_range = [0.5, 1.0]
 edge_colorscale = "plasma"
 edge_colorscale_range = [0.0, 0.5]
 
-# 以下、今まで通り
 node_cmin = 60.0
 node_cmax = 90.0
 edge_cmin = 0.005
@@ -25,6 +25,8 @@ edge_cmax = 0.012
 show_colorbar_nodes = true
 show_colorbar_edges = true
 show_ct_markers = false
+show_title = true
+show_edge_labels = true
 
 figure_width = 900
 figure_height = 600

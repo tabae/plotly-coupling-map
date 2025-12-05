@@ -257,6 +257,7 @@ def _build_edge_elements(
     edge_props: EdgeProps,
     edge_color_key: str | None,
     edge_label_key: str | None,
+    show_edge_labels: bool,
     edge_colorscale,
     edge_colorscale_range: Tuple[float, float],
     edge_cmin: float | None,
@@ -303,7 +304,7 @@ def _build_edge_elements(
             )
         )
 
-        if edge_label_key is not None and edge_label_key in props:
+        if show_edge_labels and edge_label_key is not None and edge_label_key in props:
             label = props[edge_label_key]
 
             dx = x1 - x0
@@ -424,8 +425,10 @@ def plot_coupling_map_advanced(
     edge_cmax: float | None = None,
     # 見た目系
     title: str = "Coupling map",
+    show_title: bool = True,
     show_colorbar_nodes: bool = True,
     show_colorbar_edges: bool = False,
+    show_edge_labels: bool = True,
     # ラベル・フォント系
     node_label_font_size: int = 14,
     node_label_font_color: str = "white",
@@ -490,6 +493,7 @@ def plot_coupling_map_advanced(
         edge_props=edge_props,
         edge_color_key=edge_color_key,
         edge_label_key=edge_label_key,
+        show_edge_labels=show_edge_labels,
         edge_colorscale=edge_colorscale,
         edge_colorscale_range=edge_colorscale_range,
         edge_cmin=edge_cmin,
@@ -506,7 +510,7 @@ def plot_coupling_map_advanced(
 
     fig = go.Figure(data=traces)
     fig.update_layout(
-        title=title,
+        title=title if show_title else None,
         title_x=0.5,
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -1003,9 +1007,11 @@ def main() -> None:
         edge_cmin=edge_style_for_plot.cmin,
         edge_cmax=edge_style_for_plot.cmax,
 
-        title=cfg.get("title", "Example backend (T1 / CNOT error)"),
+        title=cfg.get("title", None),
+        show_title=cfg.get("show_title", True),
         show_colorbar_nodes=show_colorbar_nodes,
         show_colorbar_edges=show_colorbar_edges,
+        show_edge_labels=cfg.get("show_edge_labels", True),
 
         node_label_font_size=cfg.get("node_label_font_size", 14),
         node_label_font_color=cfg.get("node_label_font_color", "white"),
