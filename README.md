@@ -31,7 +31,7 @@ pip install plotly networkx numpy requests
 ```bash
 git clone https://github.com/tabae/plotly-coupling-map.git
 cd plotly-coupling-map
-pip install -r requirements.txt  # または依存関係を手動でインストール
+pip install plotly networkx numpy requests
 ```
 
 ## 使用方法
@@ -64,8 +64,8 @@ node_props = {
 
 # エッジのプロパティ
 edge_props = {
-    (0, 1): {"fidelity": 0.99, "cx_duration": 200},
-    (0, 2): {"fidelity": 0.995, "cx_duration": 220},
+    (0, 1): {"fidelity": 0.99, "gate_error": 0.01, "duration_ns": 200},
+    (0, 2): {"fidelity": 0.995, "gate_error": 0.005, "duration_ns": 220},
     # ... 他のエッジ
 }
 
