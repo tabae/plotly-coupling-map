@@ -99,10 +99,14 @@ for coupling in device_topology["couplings"]:
         "rzx90_duration": coupling["gate_duration"]["rzx90"] + noise(-20, 20),
     }
 
+# Create directories if they don't exist
+os.makedirs("html", exist_ok=True)
+os.makedirs("pages", exist_ok=True)
+
 plot_coupling_map(qubits,
                   node_positions,
                   edges,
                   node_props,
                   edge_props,
-                  filename="html/sample.html",
+                  filename="pages/sample.html",
                   config_file="config/sample.toml",)
