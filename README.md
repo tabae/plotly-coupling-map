@@ -1,5 +1,7 @@
 # plotly-coupling-map
 
+> **注意**: このREADMEはGitHub Copilotによって生成されました。
+
 量子コンピューティングデバイスのカップリングマップを、Plotlyを使用してインタラクティブに可視化するPythonライブラリです。
 
 ## 特徴
@@ -18,12 +20,11 @@
 - plotly >= 6.5.0
 - networkx >= 3.6
 - numpy >= 2.3.5
-- requests >= 2.32.5
 
 ### インストール方法
 
 ```bash
-pip install plotly networkx numpy requests
+pip install plotly networkx numpy
 ```
 
 または、このリポジトリをクローンして使用：
@@ -31,7 +32,7 @@ pip install plotly networkx numpy requests
 ```bash
 git clone https://github.com/tabae/plotly-coupling-map.git
 cd plotly-coupling-map
-pip install plotly networkx numpy requests
+pip install plotly networkx numpy
 ```
 
 ## 使用方法
@@ -42,31 +43,33 @@ pip install plotly networkx numpy requests
 from plot_coupling_map import plot_coupling_map
 
 # 量子ビット定義
-qubits = [0, 1, 2, 3, 4, 5, 6, 7]
+qubits = [0, 1, 2, 3]
 
 # ノードの位置
 node_positions = {
-    0: (0, 0), 1: (1, 0), 2: (0, 1), 3: (1, 1),
-    4: (2, 0), 5: (3, 0), 6: (2, 1), 7: (3, 1),
+    0: (0, 0),
+    1: (1, 0),
+    2: (0, 1),
+    3: (1, 1),
 }
 
 # エッジ（接続）
-edges = [(0, 1), (0, 2), (3, 1), (3, 2),
-         (4, 5), (4, 6), (7, 5), (7, 6),
-         (4, 1), (3, 6)]
+edges = [(0, 1), (0, 2), (1, 2), (2, 3)]
 
 # ノードのプロパティ
 node_props = {
     0: {"fidelity": 0.998, "t1": 80, "t2": 70, "readout_error": 0.02},
     1: {"fidelity": 0.997, "t1": 70, "t2": 60, "readout_error": 0.021},
-    # ... 他のノード
+    2: {"fidelity": 0.996, "t1": 85, "t2": 75, "readout_error": 0.019},
+    3: {"fidelity": 0.995, "t1": 75, "t2": 65, "readout_error": 0.022},
 }
 
 # エッジのプロパティ
 edge_props = {
     (0, 1): {"fidelity": 0.99, "gate_error": 0.01, "duration_ns": 200},
     (0, 2): {"fidelity": 0.995, "gate_error": 0.005, "duration_ns": 220},
-    # ... 他のエッジ
+    (1, 2): {"fidelity": 0.992, "gate_error": 0.008, "duration_ns": 210},
+    (2, 3): {"fidelity": 0.991, "gate_error": 0.009, "duration_ns": 215},
 }
 
 # カップリングマップを生成
@@ -87,7 +90,7 @@ plot_coupling_map(
 
 ```toml
 [plot]
-title = "Sample Coupling Map"
+title = "Coupling Map"
 
 # 表示するパラメータ
 node_color_key = "fidelity"
@@ -95,7 +98,7 @@ edge_color_key = "fidelity"
 edge_label_key = "fidelity"
 
 # ドロップダウンで切り替えるパラメータ
-edge_color_keys = ["fidelity", "cx_duration", "rzx90_duration"]
+edge_color_keys = ["fidelity", "gate_error", "duration_ns"]
 node_color_keys = ["fidelity", "readout_error", "t1", "t2"]
 
 # カラースケール設定
@@ -103,8 +106,8 @@ colorscale = "plasma_r"
 colorscale_range = [0.5, 1.0]
 
 # 図のサイズ
-figure_width = 1200
-figure_height = 400
+figure_width = 600
+figure_height = 600
 
 # パラメータごとの詳細設定
 [plot.node_color_params.fidelity]
@@ -122,7 +125,7 @@ cmax = 1.0
 python src/sample.py
 ```
 
-このスクリプトは、GitHubから量子デバイスのトポロジーデータをダウンロードし、カップリングマップを生成して`html/sample.html`に保存します。
+このスクリプトは、<a href="https://raw.githubusercontent.com/oqtopus-team/device-gateway/refs/heads/develop/config/example/device_topology_sim.json">こちら</a>のサンプルデータをもとに、カップリングマップを生成して`html/sample.html`に保存します。
 
 ## 機能の詳細
 
@@ -173,17 +176,3 @@ plotly-coupling-map/
 ### `load_plot_config()`
 
 TOML設定ファイルから描画パラメータを読み込みます。
-
-## 貢献
-
-プルリクエストや問題の報告を歓迎します。大きな変更を行う場合は、まずissueを開いて変更内容を議論してください。
-
-## ライセンス
-
-このプロジェクトのライセンス情報については、リポジトリを参照してください。
-
-## 参考
-
-- [Plotly公式ドキュメント](https://plotly.com/python/)
-- [NetworkX](https://networkx.org/)
-- 量子コンピューティングデバイスのトポロジー情報については、[oqtopus-team/device-gateway](https://github.com/oqtopus-team/device-gateway)を参照
