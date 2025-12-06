@@ -339,8 +339,9 @@ def _build_edge_elements(
 
             label_hover = _build_hover_text(f"{c} → {t}", props)
             
-            # When edge labels are hidden, use spaces to make text invisible but keep hover text
-            display_text = str(label) if show_edge_labels else "   "
+            # When edge labels are hidden, use empty string to hide text while preserving hover functionality.
+            # Plotly annotations require the annotation to exist for hover text to work.
+            display_text = str(label) if show_edge_labels else ""
 
             annotations.append(
                 dict(
