@@ -10,6 +10,7 @@ node_color_keys = ["fidelity", "readout_error", "t1", "t2"]
 
 edge_label_font_size = 12
 edge_label_offset_frac = 0.1
+edge_label_float_format = ".3f"  # Format for float edge labels (e.g., ".2f", ".4f")
 
 colorscale = "plasma_r"
 colorscale_range = [0.5, 1.0]

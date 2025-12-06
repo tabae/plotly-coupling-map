@@ -264,6 +264,7 @@ def _build_edge_elements(
     edge_cmax: float | None,
     edge_label_font_size: int,
     edge_label_offset_frac: float,
+    edge_label_float_format: str = ".3f",
 ):
     edge_traces: List[go.Scatter] = []
     annotations: List[dict] = []
@@ -307,7 +308,7 @@ def _build_edge_elements(
         if edge_label_key is not None and edge_label_key in props:
             label = props[edge_label_key]
             if isinstance(label, float):
-                label = f"{label:.3f}"
+                label = f"{label:{edge_label_float_format}}"
 
             dx = x1 - x0
             dy = y1 - y0
@@ -441,6 +442,7 @@ def plot_coupling_map_internal(
     node_label_font_family: str | None = None,
     edge_label_font_size: int = 12,
     edge_label_offset_frac: float = 0.075,
+    edge_label_float_format: str = ".3f",
     # 図のサイズ
     figure_width: int = 600,
     figure_height: int = 600,
@@ -506,6 +508,7 @@ def plot_coupling_map_internal(
         edge_cmax=edge_cmax,
         edge_label_font_size=edge_label_font_size,
         edge_label_offset_frac=edge_label_offset_frac,
+        edge_label_float_format=edge_label_float_format,
     )
 
     # --------------------------
@@ -992,6 +995,7 @@ def plot_coupling_map(qubits: list[int],
         node_label_font_family=cfg.get("node_label_font_family"),
         edge_label_font_size=cfg.get("edge_label_font_size", 12),
         edge_label_offset_frac=cfg.get("edge_label_offset_frac", 0.075),
+        edge_label_float_format=cfg.get("edge_label_float_format", ".3f"),
 
         figure_width=cfg.get("figure_width", 600),
         figure_height=cfg.get("figure_height", 600),
