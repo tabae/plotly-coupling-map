@@ -125,7 +125,7 @@ cmax = 1.0
 python src/sample.py
 ```
 
-このスクリプトは、[こちら](https://raw.githubusercontent.com/oqtopus-team/device-gateway/refs/heads/develop/config/example/device_topology_sim.json)のサンプルデータをもとに、カップリングマップを生成して`html/sample.html`に保存します。
+このスクリプトは、[こちら](https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json)のサンプルデータをもとに、カップリングマップを生成して`html/sample.html`に保存します。
 
 ## 機能の詳細
 
