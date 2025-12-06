@@ -304,7 +304,7 @@ def _build_edge_elements(
             )
         )
 
-        if show_edge_labels and edge_label_key is not None and edge_label_key in props:
+        if edge_label_key is not None and edge_label_key in props:
             label = props[edge_label_key]
             if isinstance(label, float):
                 label = f"{label:.3f}"
@@ -338,6 +338,9 @@ def _build_edge_elements(
                     angle_deg -= 180.0
 
             label_hover = _build_hover_text(f"{c} → {t}", props)
+            
+            # When edge labels are hidden, use spaces to make text invisible but keep hover text
+            display_text = str(label) if show_edge_labels else "   "
 
             annotations.append(
                 dict(
@@ -345,7 +348,7 @@ def _build_edge_elements(
                     y=yl,
                     xref="x",
                     yref="y",
-                    text=str(label),
+                    text=display_text,
                     showarrow=False,
                     textangle=angle_deg,
                     font=dict(size=edge_label_font_size),
