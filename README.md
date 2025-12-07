@@ -1,32 +1,32 @@
-# plotly-coupling-map
+# 🗺️ plotly-coupling-map
 
 量子コンピュータのカップリングマップを、Plotlyを使用してインタラクティブに可視化するPythonライブラリです。
 
-## デモ
+## 🎬 デモ
 
 [こちら](https://tabae.github.io/plotly-coupling-map/) をご覧ください
 
 ![demo](docs/demo.png)
 
 
-## 特徴
+## ✨ 特徴
 
-- **インタラクティブな可視化**: Plotlyを使用した、ズームやホバー情報表示が可能な動的なカップリングマップ
-- **柔軟なカラーマップ**: 量子ビットのプロパティ（忠実度、T1など）に応じて、カラーマップを変更可能
-- **量子接続間ラベル**: 2量子ゲートのプロパティを視覚的に表示
-- **設定ファイル**: 描画パラメータを外部ファイルで簡単にカスタマイズ
+- **🎯 インタラクティブな可視化**: Plotlyを使用した、ズームやホバー情報表示が可能な動的なカップリングマップ
+- **🎨 柔軟なカラーマップ**: 量子ビットのプロパティ（忠実度、T1など）に応じて、カラーマップを変更可能
+- **🔗 量子接続間ラベル**: 2量子ゲートのプロパティを視覚的に表示
+- **⚙️ 設定ファイル**: 描画パラメータを外部ファイルで簡単にカスタマイズ
 
-## インストール
+## 📦 インストール
 
-### インストール方法
+### 📥 インストール方法
 
 ```bash
 pip install git+https://github.com/tabae/plotly-coupling-map.git
 ```
 
-## 使用方法
+## 🚀 使用方法
 
-### 基本的な使い方
+### 📝 基本的な使い方
 
 ```python
 from plotly_coupling_map.plotly_coupling_map import plotly_coupling_map
@@ -73,7 +73,7 @@ plotly_coupling_map(
 )
 ```
 
-### 設定ファイル（TOML）
+### ⚙️ 設定ファイル（TOML）
 
 `examples/sample.toml`を参考に、描画パラメータをカスタマイズできます：
 
@@ -106,7 +106,7 @@ cmin = 0.99
 cmax = 1.0
 ```
 
-### サンプルコード
+### 💡 サンプルコード
 
 リポジトリには実用的なサンプルコードが含まれています：
 
@@ -117,7 +117,7 @@ python examples/sample.py
 このスクリプトは、[こちら](https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json)のサンプルデータをもとに、カップリングマップを生成して`docs/index.html`に保存します。
 
 
-## API リファレンス
+## 📚 API リファレンス
 
 ### `plotly_coupling_map()`
 
