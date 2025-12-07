@@ -3,7 +3,7 @@ import json
 import math
 import random
 import requests
-from plot_coupling_map import plot_coupling_map
+from plotly_coupling_map.plot_coupling_map import plot_coupling_map
 
 # Sample data for testing
 #
@@ -107,7 +107,7 @@ plot_coupling_map(qubits,
                   node_props,
                   edge_props,
                   filename="docs/index.html",
-                  config_file="config/sample.toml",)
+                  config_file="examples/sample.toml",)
 
 # Add extra HTML link to the generated file
 extra_html = """
