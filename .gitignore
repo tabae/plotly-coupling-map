@@ -104,8 +104,7 @@ Thumbs.db
 .env.*
 
 # Sample data
-device_topology_sim.json
+examples/device_topology_sim.json
 
-# Test HTML files
-html/
-config/test_*.toml
+# examples for readme
+examples/readme_sample*
