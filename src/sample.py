@@ -100,7 +100,6 @@ for coupling in device_topology["couplings"]:
     }
 
 # Create directories if they don't exist
-os.makedirs("html", exist_ok=True)
 os.makedirs("pages", exist_ok=True)
 
 plot_coupling_map(qubits,

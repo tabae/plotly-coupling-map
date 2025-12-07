@@ -10,8 +10,8 @@ node_color_keys = ["fidelity", "readout_error", "t1", "t2"]
 
 edge_label_font_size = 12
 edge_label_offset_frac = 0.1
-edge_label_float_format = ".3f"  # Format for float edge labels (e.g., ".2f", ".4f")
-edge_label_hover_area_padding = 5  # Padding around edge labels to increase hover area (default: 5)
+edge_label_float_format = ".3f"
+edge_label_hover_area_padding = 15
 
 colorscale = "plasma_r"
 colorscale_range = [0.5, 1.0]
@@ -36,7 +36,6 @@ show_edge_labels = true
 figure_width = 1200
 figure_height = 400
 
-# ★ ノード用：パラメータごとの上書き設定
 [plot.node_color_params.fidelity]
 colorscale       = "plasma_r"
 colorscale_range = [0.5, 1.0]
@@ -61,8 +60,6 @@ colorscale_range = [0.5, 1.0]
 cmin = 0.0
 cmax = 150.0
 
-
-# ★ エッジ用：パラメータごとの上書き設定
 [plot.edge_color_params.fidelity]
 colorscale       = "plasma_r"
 colorscale_range = [0.5, 1.0]
