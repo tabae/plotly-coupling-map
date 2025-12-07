@@ -1,12 +1,12 @@
 [plot]
 title = "Sample Coupling Map"
 
-node_color_key = "fidelity"
-edge_color_key = "fidelity"
-edge_label_key = "fidelity"
+node_color_key = "1q_fidelity"
+edge_color_key = "2q_fidelity"
+edge_label_key = "2q_fidelity"
 
-edge_color_keys = ["fidelity", "cx_duration", "rzx90_duration"]
-node_color_keys = ["fidelity", "readout_error", "t1", "t2"]
+edge_color_keys = ["2q_fidelity", "cx_duration", "rzx90_duration"]
+node_color_keys = ["1q_fidelity", "readout_error", "t1", "t2"]
 
 edge_label_font_size = 12
 edge_label_offset_frac = 0.1
@@ -36,7 +36,7 @@ show_edge_labels = true
 figure_width = 1200
 figure_height = 400
 
-[plot.node_color_params.fidelity]
+[plot.node_color_params.1q_fidelity]
 colorscale       = "plasma_r"
 colorscale_range = [0.5, 1.0]
 cmin = 0.99
@@ -60,10 +60,10 @@ colorscale_range = [0.5, 1.0]
 cmin = 0.0
 cmax = 150.0
 
-[plot.edge_color_params.fidelity]
+[plot.edge_color_params.2q_fidelity]
 colorscale       = "plasma_r"
 colorscale_range = [0.5, 1.0]
-cmin = 0.99
+cmin = 0.98
 cmax = 1.0
 
 [plot.edge_color_params.cx_duration]

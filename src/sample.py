@@ -73,6 +73,8 @@ edge_props = {}
 
 def noise(min_val, max_val, digits=0):
     raw_val = random.uniform(min_val, max_val)
+    if digits == 0:
+        return round(raw_val)
     return math.floor(raw_val * 10**digits) / 10**digits
 
 for qubit in device_topology["qubits"]:
@@ -83,7 +85,7 @@ for qubit in device_topology["qubits"]:
         "physical_id": qubit["physical_id"],
         "position": qubit["position"],
         "readout_error": qubit["meas_error"]["readout_assignment_error"] + noise(0, 0.1, 4),
-        "fidelity": qubit["fidelity"] + noise(-0.01, 0, 4),
+        "1q_fidelity": qubit["fidelity"] + noise(-0.01, 0.0, 4),
         "t1": qubit["qubit_lifetime"]["t1"] + noise(-30, 50),
         "t2": qubit["qubit_lifetime"]["t2"] + noise(-70, -30),
         "gate_duration": qubit["gate_duration"],
@@ -94,7 +96,7 @@ for coupling in device_topology["couplings"]:
     target = coupling["target"]
     edges.append((control, target))
     edge_props[(control, target)] = {
-        "fidelity": coupling["fidelity"] + noise(-0.01, 0, 4),
+        "2q_fidelity": coupling["fidelity"] + noise(-0.01, 0.009, 4),
         "cx_duration": coupling["gate_duration"]["cx"] + noise(-20, 20),
         "rzx90_duration": coupling["gate_duration"]["rzx90"] + noise(-20, 20),
     }
