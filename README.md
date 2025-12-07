@@ -29,7 +29,7 @@ pip install git+https://github.com/tabae/plotly-coupling-map.git
 ### 📝 基本的な使い方
 
 ```python
-from plotly_coupling_map.plotly_coupling_map import plotly_coupling_map
+from plotly_coupling_map import plotly_coupling_map
 
 # 量子ビット定義
 qubits = [0, 1, 2, 3]
@@ -47,18 +47,18 @@ edges = [(0, 1), (0, 2), (1, 2), (2, 3)]
 
 # ノードのプロパティ
 node_props = {
-    0: {"fidelity": 0.998, "t1": 80, "t2": 70, "readout_error": 0.02},
-    1: {"fidelity": 0.997, "t1": 70, "t2": 60, "readout_error": 0.021},
-    2: {"fidelity": 0.996, "t1": 85, "t2": 75, "readout_error": 0.019},
-    3: {"fidelity": 0.995, "t1": 75, "t2": 65, "readout_error": 0.022},
+    0: {"1q_fidelity": 0.998, "t1": 80, "t2": 70, "readout_error": 0.02},
+    1: {"1q_fidelity": 0.997, "t1": 70, "t2": 60, "readout_error": 0.021},
+    2: {"1q_fidelity": 0.996, "t1": 85, "t2": 75, "readout_error": 0.019},
+    3: {"1q_fidelity": 0.995, "t1": 75, "t2": 65, "readout_error": 0.022},
 }
 
 # エッジのプロパティ
 edge_props = {
-    (0, 1): {"fidelity": 0.99, "gate_error": 0.01, "duration_ns": 200},
-    (0, 2): {"fidelity": 0.995, "gate_error": 0.005, "duration_ns": 220},
-    (1, 2): {"fidelity": 0.992, "gate_error": 0.008, "duration_ns": 210},
-    (2, 3): {"fidelity": 0.991, "gate_error": 0.009, "duration_ns": 215},
+    (0, 1): {"2q_fidelity": 0.99, "gate_error": 0.01, "duration_ns": 200},
+    (0, 2): {"2q_fidelity": 0.995, "gate_error": 0.005, "duration_ns": 220},
+    (1, 2): {"2q_fidelity": 0.992, "gate_error": 0.008, "duration_ns": 210},
+    (2, 3): {"2q_fidelity": 0.991, "gate_error": 0.009, "duration_ns": 215},
 }
 
 # カップリングマップを生成

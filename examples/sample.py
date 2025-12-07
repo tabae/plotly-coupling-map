@@ -3,7 +3,7 @@ import json
 import math
 import random
 import requests
-from plotly_coupling_map.plotly_coupling_map import plotly_coupling_map
+from plotly_coupling_map import plotly_coupling_map
 
 # Sample data for testing
 #
@@ -55,7 +55,8 @@ if os.path.exists("examples/device_topology_sim.json"):
         device_topology = json.load(f)
 else:
     print("Download device-topology.json from GitHub")
-    reps = requests.get("https://raw.githubusercontent.com/oqtopus-team/device-gateway/refs/heads/develop/config/example/device_topology_sim.json")
+    reps = requests.get(
+        "https://raw.githubusercontent.com/oqtopus-team/device-gateway/refs/heads/develop/config/example/device_topology_sim.json")
     reps.raise_for_status()
     device_topology = reps.json()
     with open("examples/device_topology_sim.json", "w") as f:
@@ -67,11 +68,13 @@ edges = []
 node_props = {}
 edge_props = {}
 
+
 def noise(min_val, max_val, digits=0):
     raw_val = random.uniform(min_val, max_val)
     if digits == 0:
         return round(raw_val)
     return math.floor(raw_val * 10**digits) / 10**digits
+
 
 for qubit in device_topology["qubits"]:
     qubit_id = qubit["id"]
@@ -98,12 +101,12 @@ for coupling in device_topology["couplings"]:
     }
 
 plotly_coupling_map(qubits,
-                  node_positions,
-                  edges,
-                  node_props,
-                  edge_props,
-                  filename="docs/index.html",
-                  config_file="examples/sample.toml",)
+                    node_positions,
+                    edges,
+                    node_props,
+                    edge_props,
+                    filename="docs/index.html",
+                    config_file="examples/sample.toml",)
 
 # Add extra HTML link to the generated file
 extra_html = """
