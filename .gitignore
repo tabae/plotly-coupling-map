@@ -103,8 +103,5 @@ Thumbs.db
 *.env
 .env.*
 
-# Sample data
-examples/device_topology_sim.json
-
 # examples for readme
 examples/readme_sample*

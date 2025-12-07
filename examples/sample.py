@@ -1,12 +1,7 @@
-import os
-import json
 import math
 import random
-import requests
 from plotly_coupling_map import plotly_coupling_map
 
-# Sample data for testing
-#
 # 量子ビット定義
 # qubits = [0, 1, 2, 3]
 
@@ -48,57 +43,45 @@ from plotly_coupling_map import plotly_coupling_map
 #     config_file="examples/sample.toml",
 # )
 
+n_rows = 4
+n_cols = 6
 
-if os.path.exists("examples/device_topology_sim.json"):
-    print("Load local device-topology_sim.json")
-    with open("examples/device_topology_sim.json", "r") as f:
-        device_topology = json.load(f)
-else:
-    print("Download device-topology.json from GitHub")
-    reps = requests.get(
-        "https://raw.githubusercontent.com/oqtopus-team/device-gateway/refs/heads/develop/config/example/device_topology_sim.json")
-    reps.raise_for_status()
-    device_topology = reps.json()
-    with open("examples/device_topology_sim.json", "w") as f:
-        json.dump(device_topology, f, indent=2)
-
-qubits = []
+qubits = list(range(n_rows * n_cols))
 node_positions = {}
 edges = []
 node_props = {}
 edge_props = {}
 
 
-def noise(min_val, max_val, digits=0):
+def rng(min_val, max_val, digits=0):
     raw_val = random.uniform(min_val, max_val)
     if digits == 0:
         return round(raw_val)
     return math.floor(raw_val * 10**digits) / 10**digits
 
-
-for qubit in device_topology["qubits"]:
-    qubit_id = qubit["id"]
-    qubits.append(qubit_id)
-    node_positions[qubit_id] = (qubit["position"]["x"], qubit["position"]["y"])
-    node_props[qubit_id] = {
-        "physical_id": qubit["physical_id"],
-        "position": qubit["position"],
-        "readout_error": qubit["meas_error"]["readout_assignment_error"] + noise(0, 0.1, 4),
-        "1q_fidelity": qubit["fidelity"] + noise(-0.01, 0.0, 4),
-        "t1": qubit["qubit_lifetime"]["t1"] + noise(-30, 50),
-        "t2": qubit["qubit_lifetime"]["t2"] + noise(-70, -30),
-        "gate_duration": qubit["gate_duration"],
+for q in qubits:
+    row = q // n_cols
+    col = q % n_cols
+    node_positions[q] = (col, n_rows - row)
+    t1 = rng(100, 200)
+    node_props[q] = {
+        "1q_fidelity": rng(0.98, 0.9999, 4),
+        "t1": t1,
+        "t2": t1 + rng(-50, -0),
+        "readout_error": rng(0.2, 0.001, 4),
     }
 
-for coupling in device_topology["couplings"]:
-    control = coupling["control"]
-    target = coupling["target"]
-    edges.append((control, target))
-    edge_props[(control, target)] = {
-        "2q_fidelity": coupling["fidelity"] + noise(-0.01, 0.009, 4),
-        "cx_duration": coupling["gate_duration"]["cx"] + noise(-20, 20),
-        "rzx90_duration": coupling["gate_duration"]["rzx90"] + noise(-20, 20),
-    }
+for row in range(n_rows):
+    for col in range(n_cols):
+        for dcol, drow in [(1, 0), (0, 1)]:
+            if col + dcol < n_cols and row + drow < n_rows:
+                q1 = row * n_cols + col
+                q2 = (row + drow) * n_cols + (col + dcol)
+                edges.append((q1, q2))
+                edge_props[(q1, q2)] = {
+                    "2q_fidelity": rng(0.90, 0.999, 4),
+                    "duration": rng(100, 300),
+                }
 
 plotly_coupling_map(qubits,
                     node_positions,
@@ -107,17 +90,3 @@ plotly_coupling_map(qubits,
                     edge_props,
                     filename="docs/index.html",
                     config_file="examples/sample.toml",)
-
-# Add extra HTML link to the generated file
-extra_html = """
-<div style="margin-top: 40px; text-align: center; font-size: 12px;">
-  <a href="https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json" target="_blank">
-    Source of device topology data
-  </a>
-</div>
-"""
-with open("docs/index.html", "r", encoding="utf-8") as f:
-    html = f.read()
-html = html.replace("</body>", extra_html + "\n</body>")
-with open("docs/index.html", "w", encoding="utf-8") as f:
-    f.write(html)

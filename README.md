@@ -114,9 +114,6 @@ cmax = 1.0
 python examples/sample.py
 ```
 
-このスクリプトは、[こちら](https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json)のサンプルデータをもとに、カップリングマップを生成して`docs/index.html`に保存します。
-
-
 ## 📚 API リファレンス
 
 ### `plotly_coupling_map()`
@@ -131,7 +128,3 @@ python examples/sample.py
 - `edge_props`: 各エッジのプロパティを持つ辞書
 - `filename`: 出力HTMLファイルのパス
 - `config_file`: TOML設定ファイルのパス
-
-### `load_plot_config()`
-
-TOML設定ファイルから描画パラメータを読み込みます。
