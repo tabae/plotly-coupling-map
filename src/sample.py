@@ -106,3 +106,17 @@ plot_coupling_map(qubits,
                   edge_props,
                   filename="docs/index.html",
                   config_file="config/sample.toml",)
+
+# Add extra HTML link to the generated file
+extra_html = """
+<div style="margin-top: 40px; text-align: center; font-size: 12px;">
+  <a href="https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json" target="_blank">
+    Source of device topology data
+  </a>
+</div>
+"""
+with open("docs/index.html", "r", encoding="utf-8") as f:
+    html = f.read()
+html = html.replace("</body>", extra_html + "\n</body>")
+with open("docs/index.html", "w", encoding="utf-8") as f:
+    f.write(html)
