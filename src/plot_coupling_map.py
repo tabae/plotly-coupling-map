@@ -264,6 +264,8 @@ def _build_edge_elements(
     edge_cmax: float | None,
     edge_label_font_size: int,
     edge_label_offset_frac: float,
+    edge_label_float_format: str = ".3f",
+    edge_label_hover_area_padding: int = 5,
 ):
     edge_traces: List[go.Scatter] = []
     annotations: List[dict] = []
@@ -304,10 +306,10 @@ def _build_edge_elements(
             )
         )
 
-        if show_edge_labels and edge_label_key is not None and edge_label_key in props:
+        if edge_label_key is not None and edge_label_key in props:
             label = props[edge_label_key]
             if isinstance(label, float):
-                label = f"{label:.3f}"
+                label = f"{label:{edge_label_float_format}}"
 
             dx = x1 - x0
             dy = y1 - y0
@@ -338,6 +340,10 @@ def _build_edge_elements(
                     angle_deg -= 180.0
 
             label_hover = _build_hover_text(f"{c} → {t}", props)
+            
+            # When edge labels are hidden, use empty string to hide text while preserving hover functionality.
+            # Plotly annotations require the annotation to exist for hover text to work.
+            display_text = str(label) if show_edge_labels else ""
 
             annotations.append(
                 dict(
@@ -345,12 +351,15 @@ def _build_edge_elements(
                     y=yl,
                     xref="x",
                     yref="y",
-                    text=str(label),
+                    text=display_text,
                     showarrow=False,
                     textangle=angle_deg,
                     font=dict(size=edge_label_font_size),
                     hovertext=label_hover,
                     hoverlabel=dict(bgcolor="white"),
+                    # Add transparent background with padding to increase hover area
+                    bgcolor="rgba(0,0,0,0)",
+                    borderpad=edge_label_hover_area_padding,
                     ax=0,
                     ay=0,
                 )
@@ -437,6 +446,8 @@ def plot_coupling_map_internal(
     node_label_font_family: str | None = None,
     edge_label_font_size: int = 12,
     edge_label_offset_frac: float = 0.075,
+    edge_label_float_format: str = ".3f",
+    edge_label_hover_area_padding: int = 5,
     # 図のサイズ
     figure_width: int = 600,
     figure_height: int = 600,
@@ -502,6 +513,8 @@ def plot_coupling_map_internal(
         edge_cmax=edge_cmax,
         edge_label_font_size=edge_label_font_size,
         edge_label_offset_frac=edge_label_offset_frac,
+        edge_label_float_format=edge_label_float_format,
+        edge_label_hover_area_padding=edge_label_hover_area_padding,
     )
 
     # --------------------------
@@ -988,6 +1001,8 @@ def plot_coupling_map(qubits: list[int],
         node_label_font_family=cfg.get("node_label_font_family"),
         edge_label_font_size=cfg.get("edge_label_font_size", 12),
         edge_label_offset_frac=cfg.get("edge_label_offset_frac", 0.075),
+        edge_label_float_format=cfg.get("edge_label_float_format", ".3f"),
+        edge_label_hover_area_padding=cfg.get("edge_label_hover_area_padding", 5),
 
         figure_width=cfg.get("figure_width", 600),
         figure_height=cfg.get("figure_height", 600),
