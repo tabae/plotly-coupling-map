@@ -40,7 +40,7 @@ pip install plotly networkx numpy
 ### 基本的な使い方
 
 ```python
-from plot_coupling_map import plot_coupling_map
+from plotly_coupling_map.plot_coupling_map import plot_coupling_map
 
 # 量子ビット定義
 qubits = [0, 1, 2, 3]
@@ -80,13 +80,13 @@ plot_coupling_map(
     node_props=node_props,
     edge_props=edge_props,
     filename="output/coupling_map.html",
-    config_file="config/sample.toml",
+    config_file="examples/sample.toml",
 )
 ```
 
 ### 設定ファイル（TOML）
 
-`config/sample.toml`を参考に、描画パラメータをカスタマイズできます：
+`examples/sample.toml`を参考に、描画パラメータをカスタマイズできます：
 
 ```toml
 [plot]
@@ -122,10 +122,10 @@ cmax = 1.0
 リポジトリには実用的なサンプルコードが含まれています：
 
 ```bash
-python src/sample.py
+python examples/sample.py
 ```
 
-このスクリプトは、[こちら](https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json)のサンプルデータをもとに、カップリングマップを生成して`html/sample.html`に保存します。
+このスクリプトは、[こちら](https://github.com/oqtopus-team/device-gateway/blob/develop/config/example/device_topology_sim.json)のサンプルデータをもとに、カップリングマップを生成して`docs/index.html`に保存します。
 
 ## 機能の詳細
 
@@ -148,14 +148,15 @@ python src/sample.py
 ```
 plotly-coupling-map/
 ├── src/
-│   ├── plot_coupling_map.py  # メインライブラリ
-│   └── sample.py              # サンプルスクリプト
-├── config/
-│   └── sample.toml            # サンプル設定ファイル
-├── html/
-│   └── sample.html            # 出力例
-├── pyproject.toml             # プロジェクト設定
-└── README.md                  # このファイル
+│   └── plotly_coupling_map/
+│       └── plot_coupling_map.py  # メインライブラリ
+├── examples/
+│   ├── sample.py                 # サンプルスクリプト
+│   └── sample.toml               # サンプル設定ファイル
+├── docs/
+│   └── index.html                # 出力例
+├── pyproject.toml                # プロジェクト設定
+└── README.md                     # このファイル
 ```
 
 ## API リファレンス

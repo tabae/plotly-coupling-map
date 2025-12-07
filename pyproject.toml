@@ -1,7 +1,7 @@
 [project]
-name = "plotly-network-graph"
+name = "plotly-coupling-map"
 version = "0.1.0"
-description = "Add your description here"
+description = "Plotting coupling maps with Plotly"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,3 +10,10 @@ dependencies = [
     "plotly>=6.5.0",
     "requests>=2.32.5",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plotly_coupling_map"]

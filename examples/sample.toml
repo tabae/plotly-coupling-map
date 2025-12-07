@@ -1,0 +1,75 @@
+[plot]
+title = "Sample Coupling Map"
+
+node_color_key = "1q_fidelity"
+edge_color_key = "2q_fidelity"
+edge_label_key = "2q_fidelity"
+
+edge_color_keys = ["2q_fidelity", "cx_duration", "rzx90_duration"]
+node_color_keys = ["1q_fidelity", "readout_error", "t1", "t2"]
+
+edge_label_font_size = 12
+edge_label_offset_frac = 0.1
+edge_label_float_format = ".3f"
+edge_label_hover_area_padding = 15
+
+colorscale = "plasma_r"
+colorscale_range = [0.5, 1.0]
+
+node_colorscale = "plasma_r"
+node_colorscale_range = [0.5, 1.0]
+
+edge_colorscale = "plasma"
+edge_colorscale_range = [0.0, 0.5]
+
+node_cmin = 60.0
+node_cmax = 90.0
+edge_cmin = 0.005
+edge_cmax = 0.012
+
+show_colorbar_nodes = true
+show_colorbar_edges = true
+show_ct_markers = false
+show_title = true
+show_edge_labels = true
+
+figure_width = 1200
+figure_height = 400
+
+[plot.node_color_params.1q_fidelity]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.99
+cmax = 1.0
+
+[plot.node_color_params.readout_error]
+colorscale       = "plasma"
+colorscale_range = [0.0, 0.5]
+cmin = 0.9
+cmax = 0.1
+
+[plot.node_color_params.t1]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.0
+cmax = 150.0
+
+[plot.node_color_params.t2]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.0
+cmax = 150.0
+
+[plot.edge_color_params.2q_fidelity]
+colorscale       = "plasma_r"
+colorscale_range = [0.5, 1.0]
+cmin = 0.98
+cmax = 1.0
+
+[plot.edge_color_params.cx_duration]
+colorscale       = "viridis_r"
+colorscale_range = [0.0, 1.0]
+
+[plot.edge_color_params.rzx90_duration]
+colorscale       = "viridis_r"
+colorscale_range = [0.0, 1.0]
