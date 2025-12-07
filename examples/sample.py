@@ -90,3 +90,12 @@ plotly_coupling_map(qubits,
                     edge_props,
                     filename="docs/index.html",
                     config_file="examples/sample.toml",)
+
+# for 1024-qubit
+# plotly_coupling_map(qubits,
+#                     node_positions,
+#                     edges,
+#                     node_props,
+#                     edge_props,
+#                     filename="docs/1024Q.html",
+#                     config_file="examples/sample_1024Q.toml",)
