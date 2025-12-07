@@ -265,6 +265,7 @@ def _build_edge_elements(
     edge_label_font_size: int,
     edge_label_offset_frac: float,
     edge_label_float_format: str = ".3f",
+    edge_label_hover_area_padding: int = 5,
 ):
     edge_traces: List[go.Scatter] = []
     annotations: List[dict] = []
@@ -356,6 +357,9 @@ def _build_edge_elements(
                     font=dict(size=edge_label_font_size),
                     hovertext=label_hover,
                     hoverlabel=dict(bgcolor="white"),
+                    # Add transparent background with padding to increase hover area
+                    bgcolor="rgba(0,0,0,0)",
+                    borderpad=edge_label_hover_area_padding,
                     ax=0,
                     ay=0,
                 )
@@ -443,6 +447,7 @@ def plot_coupling_map_internal(
     edge_label_font_size: int = 12,
     edge_label_offset_frac: float = 0.075,
     edge_label_float_format: str = ".3f",
+    edge_label_hover_area_padding: int = 5,
     # 図のサイズ
     figure_width: int = 600,
     figure_height: int = 600,
@@ -509,6 +514,7 @@ def plot_coupling_map_internal(
         edge_label_font_size=edge_label_font_size,
         edge_label_offset_frac=edge_label_offset_frac,
         edge_label_float_format=edge_label_float_format,
+        edge_label_hover_area_padding=edge_label_hover_area_padding,
     )
 
     # --------------------------
@@ -996,6 +1002,7 @@ def plot_coupling_map(qubits: list[int],
         edge_label_font_size=cfg.get("edge_label_font_size", 12),
         edge_label_offset_frac=cfg.get("edge_label_offset_frac", 0.075),
         edge_label_float_format=cfg.get("edge_label_float_format", ".3f"),
+        edge_label_hover_area_padding=cfg.get("edge_label_hover_area_padding", 5),
 
         figure_width=cfg.get("figure_width", 600),
         figure_height=cfg.get("figure_height", 600),
